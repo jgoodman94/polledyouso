@@ -61,13 +61,13 @@ TEMPLATE_DIRS = [os.path.join(BASE_DIR, 'templates')]
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 
 DATABASES = {
-    'default': {        
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'polls',
-        'USER': 'mydb',
-        'PASSWORD': 'mydb',
-        'HOST': 'localhost',
-        'PORT': '',
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'mydatabase',
+        'USER': 'mydatabaseuser',
+        'PASSWORD': 'mypassword',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
 
