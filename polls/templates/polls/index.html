@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>poll</title>
+	{% load staticfiles %}
+	<link rel="stylesheet" type="text/css" href="{% static 'polls/style.css' %}" />
+</head>
+<body>
+	<a href="/polls/registerI/">Register Here</a>
+	{% if latest_question_list %}
+    <ul>
+    {% for question in latest_question_list %}
+        <li><a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a></li>
+    {% endfor %}
+    </ul>
+	{% else %}
+	    <p>No polls are available.</p>
+	{% endif %}
+</body>
+</html>
+
+
