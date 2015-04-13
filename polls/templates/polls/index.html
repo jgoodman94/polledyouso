@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+
+
+<head>
+	<title>polled you so</title>
+	{% load staticfiles %}
+	<link rel="stylesheet" type="text/css" href="{% static 'polls/index.css' %}"/>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+	<!-- jquery UI -->
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/themes/smoothness/jquery-ui.css" />
+	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"/>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script>
+	<script type="text/javascript">
+		$(function() {
+		{% if error %}
+		alert('somewhere');
+		{% endif %}
+		$('table#numAnsSelect td').click(function() {
+			numAnswers = $(this).text(); // global
+			$('#numAnsSelect').hide();
+			$('#numberAnsSelect').val(numAnswers);
+			$('#numberAnsSelect').show();
+			for (var i = 1; i <= numAnswers; i++) {
+				$('#ans' + i).show("slide", { direction: "left" }, 500);
+			}
+			$('#ans1').focus();
+		});
+
+		$('#numberAnsSelect').focusout(function() {
+			// user enters new number of fields
+			if ($('#numberAnsSelect').val() != numAnswers) {
+				numAnswers = $('#numberAnsSelect').val();
+				$('.answer.uploadField').hide();
+				// user selects invalid number of answers
+				if (numAnswers == 69) {
+					alert('you dog, you');
+					$(this).focus();
+					return false;
+				}
+				else if (numAnswers > 5 || numAnswers < 1) {
+					alert('Please select between 1 and 5 answers.');
+					$(this).focus();
+					return false;
+				}
+				// user selects valid number of answers
+				// show appropriate number of fields
+				for (var i = 1; i <= numAnswers; i++) {
+					$('#ans' + i).show("drop", 500);
+				}
+				$('#ans1').focus();
+			}
+		});
+
+		$('.answer.display').click(function() {
+			$("#user_answer").submit();
+		})
+
+		$('#clickToAsk').click(function() {
+			$('#overlay').show();
+			$('#uploadQuestion').show('drop',500);
+		});
+
+		$('#overlay').click(function() {
+			closeModal();
+		});
+	});
+
+	function submitQuestion() {
+
+		closeModal();
+		window.setTimeout(function() {
+			resetUpload();
+		},500);
+	}
+
+	// close modal question window and overlay
+	function closeModal() {
+		$('#uploadQuestion').hide('drop',250);
+		$('#overlay').hide('drop', 250);
+	}
+
+	// reset question upload fields
+	function resetUpload() {
+		numAnswers = 0;
+		$('.answer.uploadField').hide();
+		$('.answer.uploadField').val('');
+		$('#numAnsSelect').show();
+	}	
+</script>
+
+<body>
+	<div id="overlay">
+	</div>
+
+	<div id="card">
+		<div id="question"> {{ q.text }} </div>
+		{% for a in q.answer_set.all %}
+		<!--<div class="answer display">-->
+		<div class='answer display'>
+			<a class='user_answer' href='/polls/answered/{{ q.id }}/{{ a.text }}'>
+					{{ a.text }}
+			</a>
+		</div>
+		{% endfor %}
+
+	</div>
+
+	<div id="uploadQuestion">
+		ask a question
+		<form action='/polls/submitq/' method='get'>
+			<input type="text" placeholder="your question" id="yourQ" class="uploadField" name='q'><br>
+			number of possible answers:
+			<input type="number" id="numberAnsSelect">
+			<table id="numAnsSelect" style="width:100%">
+				<tr>
+					<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td>
+				</tr>
+			</table>
+			<input type="text" placeholder="first answer" id="ans1" class="answer uploadField" name='a1'><br>
+			<input type="text" placeholder="second answer" id="ans2" class="answer uploadField" name='a2'><br>
+			<input type="text" placeholder="third answer" id="ans3" class="answer uploadField" name='a3'><br>
+			<input type="text" placeholder="fourth answer" id="ans4" class="answer uploadField" name='a4'><br>
+			<input type="text" placeholder="fifth answer" id="ans5" class="answer uploadField" name='a5'><br>
+			<input type="submit">
+		</form>
+	</div>
+
+{% load app_filters %} 
+<div id="navbar" class="stuckBar">
+	<span id="logo">
+			PolledYouSo
+	</span>
+	<span id="userInfo"></span>
+</div>
+<div id="clickToAsk" class="stuckBar">
+	ask a question
+</div>
+<a href="{% url 'polls:detail' q.id|move_right %}">
+<div id="navRight" class="changeQ">
+	<i class="fa fa-angle-right"></i>
+</div>
+</a>
+<a href="{% url 'polls:detail' q.id|move_left %}">
+<div id="navLeft" class="changeQ">
+	<i class="fa fa-angle-left"></i>
+</div>
+</a>
+
+</body>
+
+</html>

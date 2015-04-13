@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>polled you so</title>
+        {% load staticfiles %}
+        <link rel="stylesheet" type="text/css" href="{% static 'polls/index.css' %}"/>
+    </head>
+    <body>
+
+    <div id="overlay">
+    </div>
+
+    <div id="card">
+        <br><br><br>
+        <div id="question"> {{ message }} </div>
+        {% if errors %}
+        <ul>
+        {% for error in errors %}
+            <li> {{ error }} </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+        <form action='/polls/'>
+        <input type="submit" value="return to app">
+        </form>
+    </div>
+
+    <div id="navbar" class="stuckBar">
+        <span id="logo">PolledYouSo</span>
+        <span id="userInfo"></span>
+    </div>
+
+
+
+    </body>
+</html>
