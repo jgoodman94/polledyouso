@@ -1,31 +1,234 @@
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render_to_response
 from django.shortcuts import get_object_or_404, render
-from django.core.urlresolvers import reverse
-from django.views import generic
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.forms import UserCreationForm
-from django import forms
-from django.template import RequestContext
-
-from polls.form import UserForm, UserProfileForm
-
-from authomatic import Authomatic
-from authomatic.adapters import DjangoAdapter
-
-from config import CONFIG
 
 from polls.models import *
+from django.db.models import Q
+import json
+from django.views.decorators.csrf import csrf_exempt, requires_csrf_token
+from django.views.decorators.csrf import ensure_csrf_cookie
 
-authomatic = Authomatic(CONFIG, 'a super secret random string')
+from django.contrib.gis.geos import *
+from django.contrib.gis.measure import D
+
+from datetime import *
 
 def index(request):
-    question = Question.objects.order_by('-pub_date').first()
-    return render(request, 'polls/index.html', {'q':question})
+    return render(request, 'polls/static_index.html')
 
+def f(request):
+    return render(request, 'polls/facebook.html')
+
+def answeredqs(request, qlist):
+    return render(request, 'polls/answeredqs.html', {'qlist':qlist})
+
+# ---------------------- ajax site views ------------------------------
+
+# function used in ajax views to return the next 50 questions relevant
+# to user, NOT A VIEW.
+def getQuestions(user_pk):
+    questions = []
+    try:
+        user = User.objects.get(pk=user_pk)
+    # in the case of the user not existing
+    except:
+        return questions
+# get 50 closest questions ---------------
+    #search_radius = 20 
+    #current_location = user.location
+
+    #qs = Question.objects.filter(location__distance_lte=(current_location, D(m=search_radius)))\
+    #    .distance(current_location).order_by('distance')
+# ----------------------------------------
+    qs = Question.objects.order_by('-pub_date') # this will be relative to the user's location
+    for each in user.answer_set.all():
+        qs = qs.exclude(pk=each.question.pk) 
+    count = 0
+    for q in qs:
+        # add questions that user has not already answered
+        #if user.answer_set.filter(question=q).count() == 0:
+        questions.append(q)
+        count+=1
+        # specifies number of unanswered questions to return
+        if count >= 3:
+            break
+    return questions
+    #Question.objects.order_by('-pub_date')[:5]
+
+@csrf_exempt
+def flag_question(request):
+    return HttpResponse(json.dumps({'a':'a'}))
+
+@csrf_exempt
+def get_questions(request):
+    if request.method == 'POST':
+        user_pk = int(request.POST.get('user_pk'))
+        # get user-relevant questions
+        questions = getQuestions(user_pk)
+        #questions = Question.objects.order_by('-pub_date')[:2]
+
+        data = {}
+        for q in questions:
+            # create json
+            dat = {}
+            dat['question'] = q.question_text
+            answers = q.answer_set.all()
+            a = []
+            for answer in answers:
+                n = (answer.pk, answer.text)
+                a.append(n)
+            dat['answers'] = a
+            data[q.pk] = dat
+    else:
+        data = {'error': 'this was not a POST request'}
+
+    return HttpResponse(json.dumps(data))
+
+def getAge(user):
+    birth_date = user.birthday
+    days_in_year = 365.2425    
+    return int((date.today() - birth_date).days / days_in_year)
+
+@csrf_exempt
+def get_data(request):
+    if request.method == 'POST':
+        try:
+            answer_pk = request.POST.get('answer_pk')
+            q = Answer.objects.get(pk=answer_pk).question
+
+            array = []
+            for a in q.answer_set.all():
+                obj = {}
+                obj['answer'] = a.text
+                obj['frequency'] = a.users.count()
+                obj['maleFrequency'] = a.users.count()/2
+                obj['femaleFrequency'] = a.users.count()/2
+                ageArray = []
+                for each in range(1,8):
+                    ageArray.append(a.users.count()/8)
+                obj['ageFreqs'] = ageArray
+                array.append(obj)
+
+            data = {'answers':array}
+        except:
+            data = {'error':'we couldn\'t find your question'}
+    else:
+        data = {'error': 'this was not a POST request'}
+          
+    return HttpResponse(json.dumps(data))
+
+@csrf_exempt
+def save_user(request):
+    if request.method == 'POST':
+        info = json.loads(request.POST.get('info'))
+        fb_id = int(info['id'])
+        name =  info['name']
+        gender = info['gender']
+        birthday = datetime.strptime(info['birthday'], "%m/%d/%Y")
+        #email = info['email']
+        lat = float(info['lat'])
+        lng = float(info['lng'])
+
+        #return HttpResponse(json.dumps({'bday':birthday.strftime('%m %d, %Y')}))
+
+        try:
+            if User.objects.filter(fb_id=fb_id).count() == 0:
+                new_user = User(fb_id=fb_id, name=name, gender=gender, \
+                    birthday=birthday, location=Point(lat,lng))
+                new_user.save()
+                data = {'success': 'new user created', 'user_pk': new_user.pk}
+            else:
+                try:
+                    user = User.objects.get(fb_id=fb_id)
+                    data = {'success': 'user info retrieved', 'user_pk': user.pk}
+                except:
+                    {'error': 'we have more than one representation of this user in the database'}
+        except:
+            data = {'error': 'user couldn\'t be saved (something is probably wrong with fb info sent)'}
+    else:
+        data = {'error': 'this was not a POST request'}
+
+    return HttpResponse(json.dumps(data))
+
+@csrf_exempt
+def save_question(request):
+    #return HttpResponse(json.dumps({"ahh":"ahh"}))
+    if request.method == 'POST':
+        question_text = request.POST.get('question_text')
+        answers = json.loads(request.POST.get('answers'))
+        user_pk = request.POST.get('user_pk')
+        # lat = float(json.loads(request.POST.get('lat')))
+        # lon = float(json.loads(request.POST.get('lon')))
+
+        # checks for equivalence of text; could also do answers.
+        if Question.objects.filter(question_text=question_text).count() > 0:
+            return HttpResponse(json.dumps({'error': 'this question is already in our database'}))
+        # -------------------------------------
+        # perform some field checking, e.g. the question can't already exist (or can it?)
+        # -------------------------------------
+        # save the question to the database (checking of fields done on front end)
+        try:
+            user = User.objects.get(pk=1)
+            q = Question(question_text=question_text, location=user.location)
+            q.save()
+            for answer in answers:
+                a = Answer(question=q, text=answer)
+                a.save()
+            #data = {'success': 'your question was saved to the database'}
+            data = {'success': 'this question was saved at {0} to {1}'.format(user.location, user.name)}
+        except:
+            data = {'error': 'your question couldn\'t be saved to the database'}
+    else:
+        data = {'error': 'this was not a POST request'}
+
+    return HttpResponse(json.dumps(data))
+
+@csrf_exempt
+def save_answers(request):
+    if request.method == 'POST':
+        user_pk = int(request.POST.get('user_pk')) 
+        answer_pks = json.loads(request.POST.get('answer_pks'))
+
+        errors = {}
+        user = User.objects.get(pk=user_pk)
+
+        for pk in answer_pks:
+            answer_pk = int(pk[1])
+            try:
+                answer = Answer.objects.get(pk=answer_pk)
+                # check user has not already answered this question
+                try:
+                    user.answer_set.get(pk=a.pk)
+                    raise Exception('you have already answered this question')
+                except:
+                    pass
+                    #return HttpResponse(json.dumps({"answer": answer.text}))
+                    # all is well, add to database
+                    if user.answer_set.filter(question=answer.question).count()==0:
+                        #and AnswerInfo.objects.filter(user=user,answer=answer).count() == 0:
+                        answer.users.add(user)
+                        # NEED TO INCLUDE TIMESTAMP FROM AJAX
+                        AnswerInfo(answer=answer,user=user).save() # time set to now by default
+                    else:
+                        errors[answer_pk] = "question is already in our database"
+
+            except Exception as err:
+                # do I want to keep going like this? or stop?
+                errors[answer_pk] = err
+        if len(errors) == 0:
+            data = {'success': 'all answers were recorded in the database'}
+        else:
+            data = {'error': 'several questions were not recorded in the database', 'errors_by_index': errors}
+    else:
+        data = {'error': 'this was not a POST request'}
+
+    return HttpResponse(json.dumps(data))
+
+# ---------------------- test site views ------------------------------
+def create_user(request):
+    return render(request, 'test/createuser.html')
+
+# ---------------- antiquated non-ajax site views ---------------------
 def detail(request, question_id):
-    if 'uans' in request.GET:
-        return HttpResponse("AHAH")
     question = Question.objects.get(pk=question_id)
     return render(request, 'polls/index.html', {'q':question})
 
@@ -34,12 +237,13 @@ def submitq(request):
     # been submitted!
     errors = []
     if 'q' in request.GET:
-        q = request.GET['q']
-        a1 = request.GET['a1']
-        a2 = request.GET['a2']
-        a3 = request.GET['a3']
-        a4 = request.GET['a4']
-        a5 = request.GET['a5']
+        # filter out end and multiple spaces
+        q = ' '.join(request.GET['q'].split())
+        a1 = ' '.join(request.GET['a1'].split())
+        a2 = ' '.join(request.GET['a2'].split())
+        a3 = ' '.join(request.GET['a3'].split())
+        a4 = ' '.join(request.GET['a4'].split())
+        a5 = ' '.join(request.GET['a5'].split())
 
         message = "question submitted (good work bae)"
         if not q:
@@ -48,7 +252,7 @@ def submitq(request):
             errors.append("you need at least two answers bae!")
 
         if errors != []:
-            message = "question not submitted"
+            message = "question not submitted (bad work bae!)"
         else:
             # submit question to database
             savedq = Question(text=q)
@@ -66,162 +270,14 @@ def submitq(request):
             if a5:
                 a = Answer(question=savedq, text=a5)
                 a.save()
-            
+
+        # now missing this view, 'submitq.html', because i accidentally deleted it. 
         return render(request, 'polls/submitq.html', {"message":message, "errors": errors})
 
-def answered(request, question_id, question_answer):
+def answered(request, question_id, answer_id):
     question = Question.objects.get(pk=question_id)
-    a = question.answer_set.get(text=question_answer) #doesn't allow non-distinct sets of answers
+    a = question.answer_set.get(pk=answer_id) #doesn't allow non-distinct sets of answers
     user = User.objects.first()
     a.users.add(user)
     a.save()
-    return render(request, 'polls/answered.html', {'q':question, 'a':question_answer})
-
-class DetailView(generic.DetailView):
-	model = Question
-	template_name = 'polls/detail.html'
-
-class ResultsView(generic.DetailView):
-	model = Question
-	template_name = 'polls/results.html'
-
-def vote(request, question_id):
-	p = get_object_or_404(Question, pk=question_id)
-	try:
-		selected_choice = p.choice_set.get(pk=request.POST['choice'])
-	except (KeyError, Choice.DoesNotExist):
-		# Redisplay the question voting form.
-		return render(request, 'polls/detail.html', {'question': p,'error_message': "You didn't select a choice.",})
-	else:
-		selected_choice.votes += 1
-		selected_choice.save()
-        # Always return an HttpResponseRedirect after successfully dealing
-        # with POST data. This prevents data from being posted twice if a
-        # user hits the Back button.
-		return HttpResponseRedirect(reverse('polls:results', args=(p.id,)))
-
-def registerI(request):
-	# Like before, get the request's context.
-	context = RequestContext(request)
-
-    # A boolean value for telling the template whether the registration was successful.
-    # Set to False initially. Code changes value to True when registration succeeds.
-	registered = False
-
-    # If it's a HTTP POST, we're interested in processing form data.
-	if request.method == 'POST':
-        # Attempt to grab information from the raw form information.
-        # Note that we make use of both UserForm and UserProfileForm.
-		user_form = UserForm(data=request.POST)
-		profile_form = UserProfileForm(data=request.POST)
-
-        # If the two forms are valid...
-		if user_form.is_valid() and profile_form.is_valid():
-            # Save the user's form data to the database.
-			user = user_form.save()
-
-            # Now we hash the password with the set_password method.
-            # Once hashed, we can update the user object.
-			user.set_password(user.password)
-			user.save()
-
-            # Now sort out the UserProfile instance.
-            # Since we need to set the user attribute ourselves, we set commit=False.
-            # This delays saving the model until we're ready to avoid integrity problems.
-			profile = profile_form.save(commit=False)
-			profile.user = user
-
-            # Did the user provide a profile picture?
-            # If so, we need to get it from the input form and put it in the UserProfile model.
-			if 'picture' in request.FILES:
-				profile.picture = request.FILES['picture']
-
-            # Now we save the UserProfile model instance.
-			profile.save()
-
-            # Update our variable to tell the template registration was successful.
-			registered = True
-
-        # Invalid form or forms - mistakes or something else?
-        # Print problems to the terminal.
-        # They'll also be shown to the user.
-		else:
-			print user_form.errors, profile_form.errors
-
-    # Not a HTTP POST, so we render our form using two ModelForm instances.
-    # These forms will be blank, ready for user input.
-	else:
-		user_form = UserForm()
-		profile_form = UserProfileForm()
-
-    # Render the template depending on the context.
-	return render_to_response('polls/registerI.html',{'user_form': user_form, 'profile_form': profile_form, 'registered': registered},context)
-
-def register(request):
-	if request.method == 'POST':
-		form = UserCreationForm(request.POST)
-		if form.is_valid():
-			new_user = form.save()
-			return HttpResponseRedirect("/polls/")
-	else:
-		form = UserCreationForm()
-	return render(request, "polls/register.html", {
-        'form': form,
-    })
-
-def login(request, provider_name):
-    # We we need the response object for the adapter.
-	response = HttpResponse()
-    
-    # Start the login procedure.
-	result = authomatic.login(DjangoAdapter(request, response), provider_name)
-     
-    # If there is no result, the login procedure is still pending.
-    # Don't write anything to the response if there is no result!
-	if result:
-        # If there is result, the login procedure is over and we can write to response.
-		response.write('<a href="..">Home</a>')
-        
-		if result.error:
-            # Login procedure finished with an error.
-			response.write('<h2>Damn that error: {0}</h2>'.format(result.error.message))
-        
-		elif result.user:
-            # Hooray, we have the user!
-            
-            # OAuth 2.0 and OAuth 1.0a provide only limited user data on login,
-            # We need to update the user to get more info.
-			if not (result.user.name and result.user.id):
-				result.user.update()
-            
-            # Welcome the user.
-			response.write(u'<h1>Hi {0}</h1>'.format(result.user.name))
-			response.write(u'<h2>Your id is: {0}</h2>'.format(result.user.id))
-			response.write(u'<h2>Your email is: {0}</h2>'.format(result.user.email))
-            
-            # Seems like we're done, but there's more we can do...
-            
-            # If there are credentials (only by AuthorizationProvider),
-            # we can _access user's protected resources.
-			if result.user.credentials:
-                
-                # Each provider has it's specific API.
-				if result.provider.name == 'fb':
-					response.write('Your are logged in with Facebook.<br />')
-                    
-                    # We will access the user's 5 most recent statuses.
-					url = 'https://graph.facebook.com/{0}?fields=feed.limit(5)'
-					url = url.format(result.user.id)
-                    
-                    # Access user's protected resource.
-					access_response = result.provider.access(url)
-                    
-					if access_response.status == 200:
-                        # Parse response.
-						#statuses = access_response.data.get('feed').get('data')
-						#error = access_response.data.get('error')
-						response.write('Your are logged in with Facebook.<br />')
-					else:
-						response.write('Damn that unknown error!<br />')
-						response.write(u'Status: {0}'.format(response.status))
-	return response
+    return render(request, 'polls/answered.html', {'q':question, 'a':a})

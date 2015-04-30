@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib.gis import admin
 
 # Register your models here.
 from polls.models import *
@@ -9,9 +9,9 @@ class AnswerInline(admin.TabularInline):
 
 class QuestionAdmin(admin.ModelAdmin):
     fieldsets = [
-        (None, {'fields': ['text']}),
+        (None, {'fields': ['question_text']}),
         ('Date Information', {'fields': ['pub_date'], 'classes': ['collapse']}),
-        ('Location Information', {'fields': ['pub_loc'], 'classes': ['collapse']}),
+        ('Location Information', {'fields': ['location'], 'classes': ['collapse']}),
     ]
     inlines = [AnswerInline]
     list_filter = ['pub_date'] # filter by location
@@ -19,3 +19,5 @@ class QuestionAdmin(admin.ModelAdmin):
 
 admin.site.register(Question, QuestionAdmin)
 admin.site.register(User)
+admin.site.register(AnswerInfo)
+admin.site.register(WorldBorder, admin.OSMGeoAdmin)
