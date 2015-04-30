@@ -1,3 +1,6 @@
+// Load the Visualization API and the piechart package.
+google.load('visualization', '1.0', {'packages':['corechart', 'scatter', 'bar']});
+
 $(function() {
 
 	// prevent default actions on submission of any form
@@ -5,12 +8,9 @@ $(function() {
 		e.preventDefault();
 	});
 
-	//test flagging
-	flagQuestion(1,3);
-
 	alreadyAnswered = false; // did the user already answer the curr question?
 	currQType = 'near'; // are we looking for near or far questions?
-	userID = 3;
+	userID = 1;
 
 /*
 	JSONqs = '{"17": {"question": "does our girl Amy like this app?", "answers": [[51, "100%"], [53, "I BE SAYIN HOLLA YEEESSSS"], [54, "it is so breezy, what a great job they have done"], [52, "wow. wow. wow."]]}, "17": {"question": "which of these answers takes your fancy?", "answers": [[59, "this answer"], [57, "this answer"], [58, "this answer"], [56, "this answer"], [55, "this answer"]]}, "18": {"question": "how many numbers are there?", "answers": [[60, "1"], [61, "2"], [62, "3"], [63, "more than 3"]]}, "19": {"question": "how many kids did you kill today?", "answers": [[64, "4"], [65, "less than 4"]]}, "15": {"question": "will you get down with me?", "answers": [[47, "bae, you know it"], [48, "heyellllllll yaaaaaaa"], [49, "mmmmkaeeee"], [50, "try again"]]}}';
@@ -24,43 +24,13 @@ $(function() {
 
 	answeredQuestions = []; // will hold questions user answered
 
-	// Load all sound assets with PreloadJS
-    sounds = new createjs.LoadQueue();
-    sounds.installPlugin(createjs.Sound);
-    /*sounds.loadManifest([{id:"C4", src: "assets/sounds/celesta-C4.mp3"},
-                       {id:"C#4", src: "assets/sounds/celesta-C-sharp-4.mp3"},
-                       {id:"D4", src: "assets/sounds/celesta-D4.mp3"},
-                       {id:"Eb4", src: "assets/sounds/celesta-Eb4.mp3"},
-                       {id:"E4", src: "assets/sounds/celesta-E4.mp3"},
-                       {id:"F4", src: "assets/sounds/celesta-F4.mp3"},
-                       {id:"F#4", src: "assets/sounds/celesta-F-sharp-4.mp3"},
-                       {id:"G4", src: "assets/sounds/celesta-G4.mp3"},
-                       {id:"Ab4", src: "assets/sounds/celesta-Ab4.mp3"},
-                       {id:"A4", src: "assets/sounds/celesta-A4.mp3"},
-                       {id:"Bb4", src: "assets/sounds/celesta-Bb4.mp3"},
-                       {id:"B4", src: "assets/sounds/celesta-B4.mp3"},
-                       {id:"C5", src: "assets/sounds/celesta-C5.mp3"},
-                       {id:"C#5", src: "assets/sounds/celesta-C-sharp-5.mp3"},
-                       {id:"D5", src: "assets/sounds/celesta-D5.mp3"},
-                       {id:"Eb5", src: "assets/sounds/celesta-Eb5.mp3"},
-                       {id:"E5", src: "assets/sounds/celesta-E5.mp3"},
-                       {id:"F5", src: "assets/sounds/celesta-F5.mp3"},
-                       {id:"F#5", src: "assets/sounds/celesta-F-sharp-5.mp3"},
-                       {id:"G5", src: "assets/sounds/celesta-G5.mp3"},
-                       {id:"Ab5", src: "assets/sounds/celesta-Ab5.mp3"},
-                       {id:"A5", src: "assets/sounds/celesta-A5.mp3"},
-                       {id:"Bb5", src: "assets/sounds/celesta-Bb5.mp3"},
-                       {id:"B5", src: "assets/sounds/celesta-B5.mp3"},
-                       {id:"C6", src: "assets/sounds/celesta-C6.mp3"}]); */
-    
-    soundIDs = ["C4", "C#4", "D4", "Eb4", "E4", "F4", "F#4", "G4", "Ab4", "A4", "Bb4", "B4",
-                "C5", "C#5", "D5", "Eb5", "E5", "F5", "F#5", "G5", "Ab5", "A5", "Bb5", "B5", "C6"];
-    
-});
-var currentView = 'freqData'; // tracks current data display for toggling on and off when new data is selected
+	//getLocation();
 
-// Load the Visualization API and the piechart package.
-google.load('visualization', '1.0', {'packages':['corechart', 'bar']});
+
+
+
+
+});
 
 // prevent submission of form/default action on enter
 $(window).keydown(function(event){
@@ -128,15 +98,10 @@ $(document).on('click','.liAnswer', function() {
 	currQAns = [];
 	currQAns[0] = prevqID;
 	currQAns[1] = selectedAnswer;
-	currQAns[2] = Date.now(); //also keep track of time answered
 
 	answeredQuestions.push(currQAns);
 	console.log('answered Questions is ');
 	console.log(answeredQuestions);
-
-	console.log('loading data...');
-	sampleJSON = getData(currQAns[1]);
-	console.log('data loaded.');
 
 	// update minimized view of question
 	$('#questionMin').text(currQuestion);
@@ -153,7 +118,6 @@ $(document).on('click','.liAnswer', function() {
 		}
 	});
 	$('#minimize').show('drop', 500);
-	$('#data').show('drop', 500);
 	$('#navRight').show();
 });
 
@@ -174,6 +138,8 @@ $(document).on('click', '#locToggle > div', function() {
 	$('#locToggle > div').removeClass('selected');
 	$(this).addClass('selected');
 });
+
+var currentView = 'freqData'; // tracks current data display for toggling on and off when new data is selected
 
 // click on a data view
 $(document).on('click', '#dataViews > span', function() {
@@ -217,7 +183,6 @@ $(document).on('click', '#dataViews > span', function() {
 	$(this).addClass('selected');
 });
 
-
 // detect arrow key presses
 $(document).on('keydown', function(e) {
 	switch(e.keyCode) {
@@ -259,7 +224,6 @@ $(document).on('click', '#navRight', function() {
 	}
 
 	$('#minimize').hide('drop', 500);
-	$('#data').hide('drop', 500);
 	$('#card').show('drop', 500);
 });
 
@@ -269,29 +233,11 @@ $(document).on('click', '#navLeft', function() {
 	$('#navRight').show();
 	$('#card').hide('drop', 500);
 	$('#minimize').show('drop', 500);
-	$('#data').show('drop', 500);
 });
-
-// flag the question
-$(document).on('click', '#flag', function() {
-	$('#overlay').show();
-	$('#flagModal').show('drop', 500);
-});
-$(document).on('click','#flagModal > div', function() {
-	closeModal();
-	window.setTimeout(function() {
-		$('#card').slideUp();
-		currentQuestions = loadQuestion(currentQuestions);
-		$('#card').slideDown();
-	}, 300);
-
-})
 
 
 // try to get the user's geolocation
 function getLocation() {
-	$('progress').show();
-	$('#allow').show();
 	if (navigator.geolocation) {
 		navigator.geolocation.getCurrentPosition(usePosition, locError);
 	}
@@ -309,14 +255,13 @@ function usePosition(position) {
 	var lat = position.coords.latitude;
 	var lng = position.coords.longitude;
 	var latlng = new google.maps.LatLng(lat, lng);
-	// add lat and lng to user obj, to send to backend
-	fullUserObj.lat = lat;
-	fullUserObj.lng = lng;
-	saveU(fullUserObj);
-	// send data to backend
-
 	reverseGeo(latlng);
 }
+
+
+
+
+
 
 
 // handle error in getting the user's location
@@ -409,6 +354,37 @@ function loadQuestion(currentQuestions) {
 
 // Call the backend to retrieve 30 questions from database.
 // Store these locally in JSON
+function getData(questionID) {
+
+	// prepare UI to get new question
+	$('#loader').show();
+	$('#someQ').html('');
+
+	$.ajax({
+		url: 'getq/',
+		type: 'POST',
+		data: {
+			csrfmiddlewaretoken: csrftoken,
+			question_pk: u,
+			type: questionType
+		},
+		beforeSend: function() {
+		},
+		success: function(data) {
+			$('#loader').hide();
+			JSONqs = data;
+			currentQuestions = JSON.parse(JSONqs);
+			currentQuestions = formatJSON(currentQuestions);
+			currentQuestions = loadQuestion(currentQuestions);
+		},
+		error: function(e) {
+			console.log(e);
+		}
+	});
+}
+
+// Call the backend to retrieve 30 questions from database.
+// Store these locally in JSON
 function getQuestions(userID, questionType) {
 
 	// prepare UI to get new question
@@ -431,47 +407,6 @@ function getQuestions(userID, questionType) {
 			currentQuestions = JSON.parse(JSONqs);
 			currentQuestions = formatJSON(currentQuestions);
 			currentQuestions = loadQuestion(currentQuestions);
-		},
-		error: function(e) {
-			console.log(e);
-		}
-	});
-}
-
-function flagQuestion(questionID, userID) {
-	$.ajax({
-		url: 'getq/',
-		type: 'POST',
-		data: {
-			csrfmiddlewaretoken: csrftoken,
-			user_pk: userID,
-			question_pk: questionID
-		},
-		beforeSend: function() {
-		},
-		success: function(data) {
-			console.log(data);
-		},
-		error: function(e) {
-			console.log(e);
-		}
-	});
-}
-
-// Get data for display once user has answered question
-function getData(answerID) {
-	$.ajax({
-		url: 'getdata/',
-		type: 'POST',
-		data: {
-			csrfmiddlewaretoken: csrftoken,
-			answer_pk: answerID
-		},
-		beforeSend: function() {
-		},
-		success: function(data) {
-			console.log(data);
-			sampleJSON = JSON.parse(data);
 		},
 		error: function(e) {
 			console.log(e);
@@ -513,26 +448,6 @@ function saveNewQ(submittedQ, submittedAns) {
 			user_pk: userID,
 			question_text: submittedQ,
 			answers: JSON.stringify(submittedAns)
-		},
-		beforeSend: function() {
-		},
-		success: function(data) {
-			console.log(data);
-		},
-		error: function(e) {
-			console.log(e);
-		}
-	});
-}
-
-// save user; that is, either create or update user
-function saveU(userObj) {
-	$.ajax({
-		url: 'saveu/',
-		type: 'POST',
-		data: {
-			csrfmiddlewaretoken: csrftoken,
-			info: JSON.stringify(fullUserObj)
 		},
 		beforeSend: function() {
 		},
