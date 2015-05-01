@@ -56,7 +56,22 @@ def getQuestions(user_pk):
 
 @csrf_exempt
 def flag_question(request):
-    return HttpResponse(json.dumps({'a':'a'}))
+    question_pk = int(request.POST.get('question_pk'))
+    user_pk = int(request.POST.get('user_pk'))
+
+    try:
+        user = User.objects.get(pk=user_pk)
+        question = Question.objects.get(pk=question_pk)
+        if not question.flags.filter(pk=user.pk).exists():
+            # don't need to check, as flags will remain the same if already exists
+            question.flags.add(user)
+            data = {'success': 'question flagged; question now has {0} flags'.format(question.flags.count())}
+        else:
+            data = {'error': 'question has already been flagged by this user'}
+    except:
+        data = {'error':'question or user does not exist in database'}
+
+    return HttpResponse(json.dumps(data))
 
 @csrf_exempt
 def get_questions(request):

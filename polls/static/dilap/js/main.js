@@ -1,17 +1,17 @@
 $(function() {
+
 	// prevent default actions on submission of any form
 	$('form').submit(function(e) {
 		e.preventDefault();
 	});
 
-	// quick fix for showing fb login immediately
-    $('#overlay').show('drop', 500);
-    $('#login').show('drop', 500);
+	//test flagging
+	//flagQuestion(1,3);
 
 	alreadyAnswered = false; // did the user already answer the curr question?
 	currQType = 'near'; // are we looking for near or far questions?
-	userID;
-
+	var userID;
+	var answeredQuestions;
 /*
 	JSONqs = '{"17": {"question": "does our girl Amy like this app?", "answers": [[51, "100%"], [53, "I BE SAYIN HOLLA YEEESSSS"], [54, "it is so breezy, what a great job they have done"], [52, "wow. wow. wow."]]}, "17": {"question": "which of these answers takes your fancy?", "answers": [[59, "this answer"], [57, "this answer"], [58, "this answer"], [56, "this answer"], [55, "this answer"]]}, "18": {"question": "how many numbers are there?", "answers": [[60, "1"], [61, "2"], [62, "3"], [63, "more than 3"]]}, "19": {"question": "how many kids did you kill today?", "answers": [[64, "4"], [65, "less than 4"]]}, "15": {"question": "will you get down with me?", "answers": [[47, "bae, you know it"], [48, "heyellllllll yaaaaaaa"], [49, "mmmmkaeeee"], [50, "try again"]]}}';
 	currentQuestions = JSON.parse(JSONqs);
@@ -20,13 +20,13 @@ $(function() {
 */
 
 
-	getQuestions(userID, currQType);
+	//getQuestions(userID, currQType);
 
-	answeredQuestions = []; // will hold questions user answered
+	//answeredQuestions = []; // will hold questions user answered
 
 	// Load all sound assets with PreloadJS
-	sounds = new createjs.LoadQueue();
-	sounds.installPlugin(createjs.Sound);
+    sounds = new createjs.LoadQueue();
+    sounds.installPlugin(createjs.Sound);
     /*sounds.loadManifest([{id:"C4", src: "assets/sounds/celesta-C4.mp3"},
                        {id:"C#4", src: "assets/sounds/celesta-C-sharp-4.mp3"},
                        {id:"D4", src: "assets/sounds/celesta-D4.mp3"},
@@ -52,12 +52,11 @@ $(function() {
                        {id:"Bb5", src: "assets/sounds/celesta-Bb5.mp3"},
                        {id:"B5", src: "assets/sounds/celesta-B5.mp3"},
                        {id:"C6", src: "assets/sounds/celesta-C6.mp3"}]); */
-
-soundIDs = ["C4", "C#4", "D4", "Eb4", "E4", "F4", "F#4", "G4", "Ab4", "A4", "Bb4", "B4",
-"C5", "C#5", "D5", "Eb5", "E5", "F5", "F#5", "G5", "Ab5", "A5", "Bb5", "B5", "C6"];
-
+    
+    soundIDs = ["C4", "C#4", "D4", "Eb4", "E4", "F4", "F#4", "G4", "Ab4", "A4", "Bb4", "B4",
+                "C5", "C#5", "D5", "Eb5", "E5", "F5", "F#5", "G5", "Ab5", "A5", "Bb5", "B5", "C6"];
+    
 });
-
 var currentView = 'freqData'; // tracks current data display for toggling on and off when new data is selected
 
 // Load the Visualization API and the piechart package.
@@ -105,39 +104,23 @@ $.ajaxSetup({
 /* GOOGLE MAPS BEGIN */
 var map;
 
-function initialize(freqMap) {
-	var pos = new google.maps.LatLng(40.347110, -74.661619);
+function initialize() {
 	var mapOptions = {
-		zoom: 4,
-		center: pos,
+		zoom: 10,
+		center: new google.maps.LatLng(40.3679, -74.6543),
 		disableDefaultUI: true
 	};
 	map = new google.maps.Map(document.getElementById('map'),
 		mapOptions);
+}
 
-	// construct the circle for each value in freqMap
-	// we are scaling the circles based on the freq
-	for (var freq in freqMap) {
-		var populationOptions = {
-			strokeColor: '#FF0000',
-			strokeOpacity: 0.8,
-			strokeWeight: 2,
-			fillColor: '#FF0000',
-			fillOpacity: 0.35,
-			map: map,
-			center: freqMap[freq].center,
-			radius: Math.sqrt(freqMap[freq].population) * 100
-		};
-    // Add the circle for this city to the map.
-    freqCircle = new google.maps.Circle(populationOptions);
-}
-}
+google.maps.event.addDomListener(window, 'load', initialize);
 /* GOOGLE MAPS END */
 
 // click on a question's answer
 $(document).on('click','.liAnswer', function() {
 	alreadyAnswered = true;
-	console.log(qIDArray[0])
+
 	$('#navLeft').hide(); // can't go back after answer a new question
 
 	selectedAnswer = $(this).data('answerId');
@@ -171,7 +154,6 @@ $(document).on('click','.liAnswer', function() {
 	});
 	$('#minimize').show('drop', 500);
 	$('#data').show('drop', 500);
-	$('#freqView').trigger('click');
 	$('#navRight').show();
 });
 
@@ -181,82 +163,54 @@ $(document).on('click', '#locToggle > div', function() {
 	// don't do anything unless we click a new toggle
 	if (!$(this).hasClass('selected')) {
 		var htmlID = $(this).attr('id');
-		if (htmlID == 'near') 
+		if (htmlID == 'near')
 			currQType = 'near';
 		else
 			currQType = 'far';
 
-		saveAnswers(userID, answeredQuestions); // get questions called within this
+		getQuestions(userID, currQType);
 	}
 
 	$('#locToggle > div').removeClass('selected');
 	$(this).addClass('selected');
 });
 
-
-
-// object containing locations and frequency of answers
-var freqMap = {};
-freqMap['ans1.1'] = {
-	center: new google.maps.LatLng(41.878113, -87.629798),
-	population: 2714856
-};
-freqMap['ans2.1'] = {
-	center: new google.maps.LatLng(40.714352, -74.005973),
-	population: 8405837
-};
-freqMap['ans3.1'] = {
-	center: new google.maps.LatLng(34.052234, -118.243684),
-	population: 3857799
-};
-freqMap['ans4.1'] = {
-	center: new google.maps.LatLng(49.25, -123.1),
-	population: 603502
-};
-freqMap['ans5.1'] = {
-	center: new google.maps.LatLng(49.25, -123.1),
-	population: 603502
-};
-
-var freqCircle;
-
 // click on a data view
 $(document).on('click', '#dataViews > span', function() {
 	// load new data view
 	if (!$(this).hasClass('selected')) {
 		htmlID = $(this).attr('id');
-		switch(htmlID) {
-			case 'freqView':
-			$('#' + currentView).fadeOut(250);
-			$('#freqData').fadeIn(250);
-			buildPieChart(sampleJSON);
-			currentView = 'freqData';
-			break;
-			case 'genderView':
-			$('#' + currentView).fadeOut(250);
-			$('#genderData').fadeIn(250);
-			buildGenderChart(sampleJSON);
-			currentView = 'genderData';
-			break;
-			case 'ageView':
-			$('#' + currentView).fadeOut(250);
-			$('#ageData').fadeIn(250);
-			buildAgeChart(sampleJSON);
-			currentView = 'ageData';
-			break;
-			case 'mapView':
-			initialize(freqMap);
-			$('#' + currentView).fadeOut(250);
-			$('#map').show();
-			currentView = 'map';
-			break;
-			case 'musicView':
-			$('#' + currentView).fadeOut(250);
-			$('#music').fadeIn(250);
-			buildMusicalCircles(sampleJSON);
-			currentView = 'music';
-			break;       
-		}
+        switch(htmlID) {
+            case 'freqView':
+                $('#' + currentView).fadeOut(250);
+                $('#freqData').fadeIn(250);
+                buildPieChart(sampleJSON);
+                currentView = 'freqData';
+                break;
+            case 'genderView':
+                $('#' + currentView).fadeOut(250);
+                $('#genderData').fadeIn(250);
+                buildGenderChart(sampleJSON);
+                currentView = 'genderData';
+                break;
+            case 'ageView':
+                $('#' + currentView).fadeOut(250);
+                $('#ageData').fadeIn(250);
+                buildAgeChart(sampleJSON);
+                currentView = 'ageData';
+                break;
+            case 'mapView':
+                $('#' + currentView).fadeOut(250);
+                $('#map').show();
+                currentView = 'map';
+                break;
+            case 'musicView':
+                $('#' + currentView).fadeOut(250);
+                $('#music').fadeIn(250);
+                buildMusicalCircles(sampleJSON);
+                currentView = 'music';
+                break;       
+        }
 	}
 
 	$('#dataViews > span').removeClass('selected');
@@ -464,7 +418,6 @@ function getQuestions(userID, questionType) {
 	$('#loader').show();
 	$('#someQ').html('');
 
-
 	$.ajax({
 		url: 'getq/',
 		type: 'POST',
@@ -481,17 +434,6 @@ function getQuestions(userID, questionType) {
 			currentQuestions = JSON.parse(JSONqs);
 			currentQuestions = formatJSON(currentQuestions);
 			currentQuestions = loadQuestion(currentQuestions);
-			if (currentQuestions.length <= 0) {
-
-				if (currQType == 'near')
-					var otherQType = 'far';
-				else
-					var otherQType = 'near';
-
-				$('#card').hide();
-				$('#allDone').html('<span style="color:#7D26CD">Congratulations!</span> You\'ve clicked through all of the ' + currQType + ' polls.<br>Change your location query to ' + otherQType + ' (above), ask your own question (below), or explore some other parts of the site!');
-				$('#allDone').show();
-			}
 		},
 		error: function(e) {
 			console.log(e);
@@ -533,11 +475,8 @@ function getData(answerID) {
 		success: function(data) {
 			console.log(data);
 			sampleJSON = JSON.parse(data);
-			console.log('data is');
-			console.log(sampleJSON);
 		},
 		error: function(e) {
-			console.log('error data is ');
 			console.log(e);
 		}
 	});
@@ -614,7 +553,3 @@ function saveU(userObj) {
 }
 
 
-// cleanup if user exits early
-$(window).on('beforeunload', function() {
-	saveAnswers(userID, answeredQuestions);
-});
