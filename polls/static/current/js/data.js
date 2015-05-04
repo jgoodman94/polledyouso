@@ -8,7 +8,7 @@ var dataColors = ["#F68E55", "#3BB878", "#00BFF3", "#855FA8", "#F06EA9"];
 var soundIDs;
 
 // for testing only
-var sampleJSON; /* = '{ "answers" : [' +
+var sampleJSON; /*= '{ "answers" : [' +
     '{ "answer":"tenderly" , "frequency": 20 , "maleFrequency": 3, "femaleFrequency": 6, "ageFreqs": [5, 2, 3, 1, 5, 0, 9, 10]},' +
     '{ "answer":"anxiously" , "frequency": 50 , "maleFrequency": 6, "femaleFrequency": 19, "ageFreqs": [0, 2, 3, 1, 2, 1, 5, 2]},' +
     '{ "answer":"masturbatorily" , "frequency": 10 , "maleFrequency": 10, "femaleFrequency": 1, "ageFreqs": [3, 2, 3, 1, 8, 5, 2, 3]},' +
@@ -23,7 +23,8 @@ var stage;
 // Draws a simple pie chart representation of the overall frequencies for each answer
 /* ------------------------------------------------------------------------------------------*/
 function buildPieChart(data) {
-    var dataObject = data;
+    //var dataObject = JSON.parse(data);
+    var dataObject = data
     
     // Create the data table.
     var data = new google.visualization.DataTable();
@@ -52,7 +53,8 @@ function buildPieChart(data) {
 // Draws a radar chart using male and female frequencies for each answer
 /* ------------------------------------------------------------------------------------------*/
 function buildGenderChart(data) {
-    var dataObject = data;
+    //var dataObject = JSON.parse(data);
+    var dataObject = data
     var dataArray = [];
     
     var data = {
@@ -83,7 +85,7 @@ function buildGenderChart(data) {
     
     // Populate chart with answers and their corresponding frequencies
     $.each(dataObject.answers, function(key, value) {
-        data.labels.push('Answer' + (key+1));
+        data.labels.push(value.answer);
         data.datasets[0].data.push(value.maleFrequency);
         data.datasets[1].data.push(value.femaleFrequency);
     });
@@ -104,7 +106,8 @@ function buildGenderChart(data) {
 // Plots all frequencies according to set age groups
 /* ------------------------------------------------------------------------------------------*/
 function buildAgeChart(data) {
-    var dataObject = data;
+    //var dataObject = JSON.parse(data);
+    var dataObject = data
     var dataArray = [];
     
     dataArray.push(['Answers'], ['Under 14'], ['15-17'], ['18-21'], ['22-29'], ['30-39'], ['40-49'], ['Over 50']);
@@ -158,7 +161,8 @@ function buildMusicalCircles(data) {
     stage.enableMouseOver(60);
     createjs.Ticker.addEventListener("tick", stage);
     
-    var dataObject = data;
+    //var dataObject = JSON.parse(data);
+    var dataObject = data
     var overallFreq = 0;
     $.each(dataObject.answers, function(key, value) {
         overallFreq += value.frequency;

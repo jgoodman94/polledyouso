@@ -183,7 +183,7 @@ def save_question(request):
         # save the question to the database (checking of fields done on front end)
         try:
             user = User.objects.get(pk=1)
-            q = Question(question_text=question_text, location=user.location)
+            q = Question(question_text=question_text, creator_id=user_pk, location=user.location)
             q.save()
             for answer in answers:
                 a = Answer(question=q, text=answer)
