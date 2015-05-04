@@ -44,7 +44,13 @@ def getQuestions(user_pk, ran):
     except:
         return questions
 
-    qs = Question.objects.order_by('-pub_date') # this will be relative to the user's location
+    current_location = user.location
+    radius = 5 
+    if ran == 'near':
+        qs = Question.objects.filter(location__distance_lte=(current_location, radius))
+    elif ran == 'far':
+        qs = Question.objects.filter(location__distance_gte=(current_location, radius))
+    #qs = Question.objects.order_by('-pub_date') # this will be relative to the user's location
 
     # exclude already answered (or flagged) questions
     for each in user.answer_set.all():
@@ -89,7 +95,7 @@ def get_questions(request):
         user_pk = int(request.POST.get('user_pk'))
         ran = request.POST.get('type')
         # get user-relevant questions
-        questions = getQuestions(user_pk, ran)
+        questions = getQuestions(user_pk, 'far') #hardcoded
         #questions = Question.objects.order_by('-pub_date')[:2]
 
         data = {}
@@ -169,6 +175,32 @@ def get_data(request):
     else:
         data = {'error': 'this was not a POST request'}
           
+    return HttpResponse(json.dumps(data))
+
+@csrf_exempt
+def get_profile(request):
+    if request.method == 'POST':
+        try:
+            try:
+                user_pk = int(request.POST.get('user_pk'))
+                user = User.objects.get(pk=user_pk)
+            except:
+                return HttpResponse(json.dumps({'error':'user not defined'}))
+
+            array = []
+            for q in user.question_created.all():
+                obj = {}
+                obj['qID'] = q.pk
+                obj['question'] = q.question_text
+                obj['answers'] = [ans.text for ans in q.answer_set.all()]
+                obj['answer_counts'] = [ans.users.count() for ans in q.answer_set.all()]
+                array.append(obj)
+            data = {'profile':array}
+        except:
+            data = {'error':'couldn\'t retrieve profile'}
+    else:
+        data = {'error': 'this was not a POST request'}
+
     return HttpResponse(json.dumps(data))
 
 @csrf_exempt
