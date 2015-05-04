@@ -247,7 +247,10 @@ window.onresize = resize;
 
 // setup function for resizing all charts 
 function resize() {
-    buildPieChart(sampleJSON);
-    buildGenderChart(sampleJSON);
-    buildAgeChart(sampleJSON);
+    if ($('#freqView').hasClass('selected'))
+        buildPieChart(sampleJSON);
+    else if ($('#genderView').hasClass('selected'))
+        buildGenderChart(sampleJSON);
+    else if ($('#ageView').hasClass('selected'))
+        buildAgeChart(sampleJSON);
 }

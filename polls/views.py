@@ -25,7 +25,7 @@ def answeredqs(request, qlist):
 
 # function used in ajax views to return the next 50 questions relevant
 # to user, NOT A VIEW.
-def getQuestions(user_pk):
+def getQuestions(user_pk, ran):
     questions = []
     try:
         user = User.objects.get(pk=user_pk)
@@ -33,11 +33,16 @@ def getQuestions(user_pk):
     except:
         return questions
 # get 50 closest questions ---------------
-    #search_radius = 20 
-    #current_location = user.location
+    current_location = user.location
+    radius = 5 
+    #if ran == 'near':
+        #qs = Question.objects.none()
+    #    qs = Question.objects.filter(location__distance_lte=(current_location, radius))
+    #elif ran == 'far':
+    #    qs = Question.objects.filter(location__distance_gte=(current_location, radius))
 
-    #qs = Question.objects.filter(location__distance_lte=(current_location, D(m=search_radius)))\
-    #    .distance(current_location).order_by('distance')
+    #qs = qs.order_by(location)
+    #qs = sorted(qs, key= lambda t: t.location.distance(current_location))
 # ----------------------------------------
     qs = Question.objects.order_by('-pub_date') # this will be relative to the user's location
     for each in user.answer_set.all():
@@ -77,8 +82,9 @@ def flag_question(request):
 def get_questions(request):
     if request.method == 'POST':
         user_pk = int(request.POST.get('user_pk'))
+        ran = request.POST.get('type')
         # get user-relevant questions
-        questions = getQuestions(user_pk)
+        questions = getQuestions(user_pk, ran)
         #questions = Question.objects.order_by('-pub_date')[:2]
 
         data = {}
@@ -103,6 +109,11 @@ def getAge(user):
     days_in_year = 365.2425    
     return int((date.today() - birth_date).days / days_in_year)
 
+# custom function
+def calculate_age(born):
+    today = date.today()
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
 @csrf_exempt
 def get_data(request):
     if request.method == 'POST':
@@ -115,11 +126,35 @@ def get_data(request):
                 obj = {}
                 obj['answer'] = a.text
                 obj['frequency'] = a.users.count()
-                obj['maleFrequency'] = a.users.count()/2
-                obj['femaleFrequency'] = a.users.count()/2
-                ageArray = []
-                for each in range(1,8):
-                    ageArray.append(a.users.count()/8)
+                # find formatted data ---
+                maleCount = 0
+                femaleCount = 0
+                ageArray = [0,0,0,0,0,0,0]
+                for user in a.users.all():
+                    if user.gender == 'male':
+                        maleCount += 1
+                    if user.gender == 'female':
+                        femaleCount += 1
+                    age = calculate_age(user.birthday)
+                    # ['Under 14'], ['15-17'], ['18-21'], ['22-29'], ['30-39'], ['40-49'], ['Over 50'])
+                    if age <= 14:
+                        ind = 0
+                    elif age <= 17:
+                        ind = 1
+                    elif age <= 21:
+                        ind = 2
+                    elif age <= 29:
+                        ind = 3
+                    elif age <= 39:
+                        ind = 4
+                    elif age <= 49:
+                        ind = 5
+                    else:
+                        ind = 6
+                    ageArray[ind] += 1
+                # -----------------------
+                obj['maleFrequency'] = maleCount
+                obj['femaleFrequency'] = femaleCount
                 obj['ageFreqs'] = ageArray
                 array.append(obj)
 
@@ -183,7 +218,7 @@ def save_question(request):
         # save the question to the database (checking of fields done on front end)
         try:
             user = User.objects.get(pk=1)
-            q = Question(question_text=question_text, creator_id=user_pk, location=user.location)
+            q = Question(question_text=question_text, creator=user, location=user.location)
             q.save()
             for answer in answers:
                 a = Answer(question=q, text=answer)
@@ -206,8 +241,10 @@ def save_answers(request):
         errors = {}
         user = User.objects.get(pk=user_pk)
 
+        # bad variables, could change if i have time
         for pk in answer_pks:
             answer_pk = int(pk[1])
+            time = pk[2]
             try:
                 answer = Answer.objects.get(pk=answer_pk)
                 # check user has not already answered this question
@@ -221,7 +258,7 @@ def save_answers(request):
                     if user.answer_set.filter(question=answer.question).count()==0:
                         #and AnswerInfo.objects.filter(user=user,answer=answer).count() == 0:
                         answer.users.add(user)
-                        # NEED TO INCLUDE TIMESTAMP FROM AJAX
+                        # NEED TO INCLUDE TIMESTAMP FROM AJAX, index 2, to fix
                         AnswerInfo(answer=answer,user=user).save() # time set to now by default
                     else:
                         errors[answer_pk] = "question is already in our database"
