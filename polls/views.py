@@ -25,28 +25,33 @@ def answeredqs(request, qlist):
 
 # function used in ajax views to return the next 50 questions relevant
 # to user, NOT A VIEW.
-def getQuestions(user_pk, ran):
-    questions = []
-    try:
-        user = User.objects.get(pk=user_pk)
-    # in the case of the user not existing
-    except:
-        return questions
+
 # get 50 closest questions ---------------
-    current_location = user.location
-    radius = 5 
-    #if ran == 'near':
-        #qs = Question.objects.none()
-    #    qs = Question.objects.filter(location__distance_lte=(current_location, radius))
-    #elif ran == 'far':
-    #    qs = Question.objects.filter(location__distance_gte=(current_location, radius))
+#    current_location = user.location
+#    radius = 5 
+#    if ran == 'near':
+#        qs = Question.objects.filter(location__distance_lte=(current_location, radius))
+#    elif ran == 'far':
+#        qs = Question.objects.filter(location__distance_gte=(current_location, radius))
 
     #qs = qs.order_by(location)
     #qs = sorted(qs, key= lambda t: t.location.distance(current_location))
 # ----------------------------------------
+def getQuestions(user_pk, ran):
+    questions = []
+    try:
+        user = User.objects.get(pk=user_pk)
+    except:
+        return questions
+
     qs = Question.objects.order_by('-pub_date') # this will be relative to the user's location
+
+    # exclude already answered (or flagged) questions
     for each in user.answer_set.all():
         qs = qs.exclude(pk=each.question.pk) 
+    for q in user.question_flagged.all():
+        qs = qs.exclude(pk=q.pk)
+
     count = 0
     for q in qs:
         # add questions that user has not already answered

@@ -1,6 +1,7 @@
 from polls.models import *
 
-user = User.objects.first()
+users = User.objects.all()
 
-for each in user.answer_set.all():
-    each.users.remove(user)
+for user in users:
+    for each in user.answer_set.all():
+        each.users.remove(user)

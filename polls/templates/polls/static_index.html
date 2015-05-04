@@ -74,19 +74,10 @@
 	<div id="card">
 		<div id="flag"><i class="fa fa-flag"></i></div>
 		<ul id="someQ"></ul>
-<!--
-		<div id="question"></div>
-		<div id="answer_one" class="answer display">
-		</div>
-		<div id="answer_two" class="answer display">
-		</div>
-		<div id="answer_three" class="answer display">
-		</div>
-		<div id="answer_four" class="answer display">
-		</div>
-		<div id="answer_five" class="answer display">
-		</div>
-	-->
+
+</div>
+
+<div id="allDone"><span style="color:#7D26CD">Congratulations!</span> You've clicked through all of the near polls.<br><br>Change your location query to far (above), ask your own question (below), or explore some other parts of the site!
 </div>
 
 <div id="flagModal">
@@ -157,20 +148,19 @@
 </div>
 <div id="userInfo">
 	<div id="gender">
-		<i class="fa fa-mars"></i>
+		<i class="fa fa-mars" style="display:none"></i>
 		<i class="fa fa-venus" style="display:none"></i>
 	</div>
 	<div id="age">
-		20
 	</div>
 	<div id="location">
-		<span>Princeton</span>
-		<i class="fa fa-map-marker" style="color:red; opacity:0.5"></i>
+		<span></span>
+		<i class="fa fa-map-marker" style="color:red; opacity:0.5; display:none"></i>
 	</div>
 
 	<div id="userSelections">
 		<ul>
-			<li>my profile</li>
+			<li id="profile">profile</li>
 			<li id="logout">logout</li>
 		</ul>
 	</div>
@@ -183,7 +173,7 @@
 <div id="allow">Please allow location services.</div>
 
 <div id="minimize">
-	<div id="questionMin">HOW ARE YOU USED TO LOVING?</div>
+	<div id="questionMin">HOW ARE YOU USED TO LOVING?<span><i class="fa fa-star"></i></span></div>
 	<div id="answersMin">
 		<span>tenderly</span>
 		<span>anxiously</span>
