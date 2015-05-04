@@ -46,11 +46,11 @@ def getQuestions(user_pk, ran):
 
     current_location = user.location
     radius = 5 
-    if ran == 'near':
-        qs = Question.objects.filter(location__distance_lte=(current_location, radius))
-    elif ran == 'far':
-        qs = Question.objects.filter(location__distance_gte=(current_location, radius))
-    #qs = Question.objects.order_by('-pub_date') # this will be relative to the user's location
+    #if ran == 'near':
+    #    qs = Question.objects.filter(location__distance_lte=(current_location, radius))
+    #elif ran == 'far':
+    #    qs = Question.objects.filter(location__distance_gte=(current_location, radius))
+    qs = Question.objects.order_by('-pub_date') # this will be relative to the user's location
 
     # exclude already answered (or flagged) questions
     for each in user.answer_set.all():
@@ -187,15 +187,51 @@ def get_profile(request):
             except:
                 return HttpResponse(json.dumps({'error':'user not defined'}))
 
-            array = []
+            outer_array = []
             for q in user.question_created.all():
                 obj = {}
                 obj['qID'] = q.pk
                 obj['question'] = q.question_text
-                obj['answers'] = [ans.text for ans in q.answer_set.all()]
-                obj['answer_counts'] = [ans.users.count() for ans in q.answer_set.all()]
-                array.append(obj)
-            data = {'profile':array}
+            #------ answers ----- should update and make a function
+                array = []
+                for a in q.answer_set.all():
+                    obj = {}
+                    obj['answer'] = a.text
+                    obj['frequency'] = a.users.count()
+                    # find formatted data ---
+                    maleCount = 0
+                    femaleCount = 0
+                    ageArray = [0,0,0,0,0,0,0]
+                    for user in a.users.all():
+                        if user.gender == 'male':
+                            maleCount += 1
+                        if user.gender == 'female':
+                            femaleCount += 1
+                        age = calculate_age(user.birthday)
+                        # ['Under 14'], ['15-17'], ['18-21'], ['22-29'], ['30-39'], ['40-49'], ['Over 50'])
+                        if age <= 14:
+                            ind = 0
+                        elif age <= 17:
+                            ind = 1
+                        elif age <= 21:
+                            ind = 2
+                        elif age <= 29:
+                            ind = 3
+                        elif age <= 39:
+                            ind = 4
+                        elif age <= 49:
+                            ind = 5
+                        else:
+                            ind = 6
+                        ageArray[ind] += 1
+                    # -----------------------
+                    obj['maleFrequency'] = maleCount
+                    obj['femaleFrequency'] = femaleCount
+                    obj['ageFreqs'] = ageArray
+                    array.append(obj)
+                outer_array += {'answers':array}
+            #------------------------
+            data = outer_array
         except:
             data = {'error':'couldn\'t retrieve profile'}
     else:
